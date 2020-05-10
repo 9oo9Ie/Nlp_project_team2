@@ -14,7 +14,9 @@ corpus=""
 # my word will be randomly selected later...
 """
 (not implemented)
-think_subject function will be get the random quiz word
+() -> str
+think_subject function will be get the random quiz word according to subject.
+it returns the randomly selected quiz word.
 """
 def think_animal():
     global myword
@@ -38,9 +40,11 @@ def think_book():
     return myword
 
 """
+str, str -> str
 subject_corpus function gets the imformation of quiz word from website.
 The website will be different to have appropriate informations.
 ex) I  select the national geographic site to get the features of specific animals.
+It returns the corpus of the animal's imformation.
 """
 def animal_corpus(animal_type, word):
     corpus=""
@@ -56,8 +60,9 @@ def animal_corpus(animal_type, word):
 
 """
 (not completed)
+() -> int
 Select the subject with user interation &
-select quiz word + get information from web (make corpus to answer the user questions)
+returns exit code to distinguish the mode
 """
 def choose_subject():    
     while (1):
@@ -88,6 +93,10 @@ def choose_subject():
         else:
             print("There is no option about that. Choose number.\n")
 
+"""
+() -> ()
+Get the questions from user & answer the questions
+"""
 def get_questions():
     for i in range(20):
         print("This is "+str(i+1)+"th question")
@@ -103,7 +112,10 @@ def get_questions():
         hide_sentence=hide_critical_part(sentence)
         print("My answer: "+hide_sentence+"\n")
     print("20 questions over... I win zz. The answer was "+myword+"!")
-
+"""
+()-> ()
+Give the hint words of book categories with user interaction ?.
+"""
 def give_hint():
     print("I will give hints to you rather than I get the questions from you.")
     for i in range(20):
@@ -120,6 +132,12 @@ def give_hint():
         print(wrong_list[random.randint(0,len(wrong_list)-1)])
     print("20 questions over... I win zz. The answer was "+myword+"!")
 
+"""
+str list -> str list
+Find synonyms of given list's words  (stems of question) using synset.
+It returns all different form of synonyms (ex. verb+ing, ed ...)
+It will be used to search the stem word in corpus. 
+"""
 def Find_synonym (list1):
     myset=[]
     for myword in list1:
@@ -131,7 +149,13 @@ def Find_synonym (list1):
         syn_words= list(set(syn_words + relateform))
         myset+= syn_words
     return myset
-
+"""
+(not completed)
+str -> str
+Dealing questions, so calculate answer string.
+If there is no information about the question, it says I don't know.
+It returns answer string from corpus.
+"""
 def dealing_question(quest):
     sentences=nltk.tokenize.sent_tokenize(corpus)
     answer_list=[]
@@ -147,7 +171,12 @@ def dealing_question(quest):
     if (answer_list==[]):
         return "Maybe not or I don't know about that"
     return ' '.join(answer_list)
-
+"""
+(not completed)
+str -> str
+Hide critical information like direct name .
+It returns the hidden sentence.
+"""
 def hide_critical_part(sentences):
     token_word=nltk.tokenize.word_tokenize(myword)
     for critical_word in token_word:
@@ -157,7 +186,7 @@ def hide_critical_part(sentences):
             sentences=sentences.replace(c,'they')
         return sentences
     
-#(not completed)
+
 #main function part            
 print("Hello, this is 20 questions program.\n"+"I will think the word about subject  you chose.\n")
 exit_code=choose_subject()
