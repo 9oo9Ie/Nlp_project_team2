@@ -1,6 +1,7 @@
 import nltk
 import requests
 from bs4 import BeautifulSoup
+from nltk.corpus import *
 import browncorpus as br
 import random
 
@@ -91,16 +92,16 @@ def get_questions():
     for i in range(20):
         print("This is "+str(i+1)+"th question")
         quest=input("What's your question? Please use question mark \'?\' in the end. \n You can give me the answer also.\n")
-        if (quest==myword):
+        if (quest in myword):
             print("You correct! Congratulation. The answer was "+myword+"!")
             return
         if (quest[-1]!='?'):
             print(wrong_list[random.randint(0,len(wrong_list)-1)])
             continue
         print("I'm thinking about your question...")
-        sentence=""
-        #sentence=dealing_question(quest)
-        print("My answer: "+sentence+"\n")
+        sentence=dealing_question(quest)
+        hide_sentence=hide_critical_part(sentence)
+        print("My answer: "+hide_sentence+"\n")
     print("20 questions over... I win zz. The answer was "+myword+"!")
 
 def give_hint():
@@ -118,10 +119,44 @@ def give_hint():
             continue
         print(wrong_list[random.randint(0,len(wrong_list)-1)])
     print("20 questions over... I win zz. The answer was "+myword+"!")
-    
-def dealing_question(quest):
-    pass
 
+def Find_synonym (list1):
+    myset=[]
+    for myword in list1:
+        myword= myword.lower()
+        syn=wordnet.synsets(myword)
+        syn_words= sorted(l.name() for s in syn for l in s.lemmas())
+        #update thier verb/noun/adjective/adverb forms
+        relateform=sorted(rf.name() for s in syn for l in s.lemmas() for rf in l.derivationally_related_forms() )
+        syn_words= list(set(syn_words + relateform))
+        myset+= syn_words
+    return myset
+
+def dealing_question(quest):
+    sentences=nltk.tokenize.sent_tokenize(corpus)
+    answer_list=[]
+    #analysis question
+    text=nltk.tokenize.word_tokenize(quest)
+    tagged=nltk.pos_tag(text)
+    word_list= [word[0] for word in tagged if word[1] in ['NN','NNS','NNP','NNPS','VB','VBD','VBG','VBN','VBP','VBZ']]
+    stem_list= [word for word in word_list if word.isalpha() and len(word) > 1 ]
+    syn_list=Find_synonym(stem_list)
+    if ('name' in syn_list):
+        return "I'm not fool, I can't show that"
+    answer_list = [sentence for sentence in sentences for syn_word in syn_list if(syn_word) in sentence]
+    if (answer_list==[]):
+        return "Maybe not"
+    return ' '.join(answer_list)
+
+def hide_critical_part(sentences):
+    token_word=nltk.tokenize.word_tokenize(myword)
+    for critical_word in token_word:
+        c_critical=critical_word.capitalize()
+        critical_set=[critical_word]+[critical_word+"s"]+[critical_word+"es"]+[critical_word+"ies"]+[c_critical]+[c_critical+"s"]+[c_critical+"es"]+[c_critical+"ies"]
+        for c in critical_set:
+            sentences=sentences.replace(c,'they')
+        return sentences
+    
 #(not completed)
 #main function part            
 print("Hello, this is 20 questions program.\n"+"I will think the word about subject  you chose.\n")
@@ -130,7 +165,7 @@ if (exit_code == 3):
     give_hint()
 elif (exit_code!=0):
     get_questions()
-    #dealing_question
+    dealing_question
 print("Good bye.\n")
 
 
