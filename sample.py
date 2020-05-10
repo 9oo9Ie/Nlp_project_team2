@@ -165,7 +165,6 @@ if (exit_code == 3):
     give_hint()
 elif (exit_code!=0):
     get_questions()
-    dealing_question
 print("Good bye.\n")
 
 
