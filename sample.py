@@ -145,7 +145,7 @@ def dealing_question(quest):
         return "I'm not fool, I can't show that"
     answer_list = [sentence for sentence in sentences for syn_word in syn_list if(syn_word) in sentence]
     if (answer_list==[]):
-        return "Maybe not"
+        return "Maybe not or I don't know about that"
     return ' '.join(answer_list)
 
 def hide_critical_part(sentences):
