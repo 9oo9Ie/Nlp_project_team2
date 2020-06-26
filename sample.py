@@ -1,143 +1,171 @@
 import nltk
 import requests
 from bs4 import BeautifulSoup
-from nltk.corpus import *
-import browncorpus as br
+from nltk.corpus import wordnet
 import random
+from nltk.corpus import stopwords
+from nltk.stem.wordnet import WordNetLemmatizer
+lemmatizer = WordNetLemmatizer()
 
 book_list = nltk.corpus.brown.categories()
 wrong_list=["Nope.","Wrong answer.","Try again...", "Your answer is maybe not correct"]
 hint_list=[]
 myword=""
 corpus=""
+random_corpus = []
+num = 0
+animals_type=['mammals','amphibians','birds', 'fish', 'invertebrates', 'reptiles']
+animals_dict={"mammals":['african elemphant','gray wolf','horse','red fox','cheetah','giraffe','koala','jaguar','arctic fox','bengal tiger','giant panda', 'polar bear','red panda','african lion'],
+                  "amphibians":['cane toad','spotted salamander'],
+                  "fish":['european eel','largetooth sawfish','sockeye salmon'],
+                  "birds": ['bald eagle','house sparrow','american crow','rock pigeon'],
+                  "invertebrates":['praying mantis','banana slug'],
+                  "reptiles":['komodo dragon','burmese python','king cobra','gopher tortoise','gharial','nile crocodile']}
 
 # my word will be randomly selected later...
 """
 (not implemented)
-() -> str
-think_subject function will be get the random quiz word according to subject.
-it returns the randomly selected quiz word.
+think_subject function will be get the random quiz word
 """
+def rmstopwords(token):  #function which exclude stop words from token
+    stop_words = set(stopwords.words('english'))
+    token=[w for w in token if w not in stop_words]
+    return token
+
 def think_animal():
     global myword
-    animals_type=['mammals','amphibians','birds'] #'fish' 'invertebrates' 'reptiles' will be added
-    animals_dict={"mammals":['african elemphant','horse','red fox','cheetah','giraffe','koala','jaguar','arctic fox','bengal tiger','giant panda', 'polar bear'],
-                  "amphibians":['green eyed tree frog','cane toad','spotted salamander'],
-                  "fish":[],
-                  "birds": ['bald eagle','house sparrow','america crow','rock pigeon'],
-                  "invertebrates":[],
-                  "reptiles":[]}
     rand_type=animals_type[random.randint(0,len(animals_type)-1)]
     rand_list=animals_dict[rand_type]
     myword=rand_list[random.randint(0,len(rand_list)-1)]
     return (rand_type, myword)
-def think_greats():
-    global myword
-    myword="Einstein"
-def think_book():
-    global myword
-    myword=book_list[random.randint(0,len(book_list)-1)]
-    return myword
 
 """
-str, str -> str
 subject_corpus function gets the imformation of quiz word from website.
 The website will be different to have appropriate informations.
 ex) I  select the national geographic site to get the features of specific animals.
-It returns the corpus of the animal's imformation.
 """
-def animal_corpus(animal_type, word):
+def animal_corpus(word):
     corpus=""
-    web=requests.get('https://www.nationalgeographic.com/animals/'+animal_type+'/'+word[0]+'/'+"-".join(word.split())+'/')
+    web=requests.get('https://en.wikipedia.org/wiki/'+word)
     soup=BeautifulSoup(web.content, 'html.parser')
-    feature_list= soup.findAll('div',class_='smartbody')
+    feature_list= soup.findAll('p')
     for sent in feature_list:
         untag=sent.get_text()
         corpus += untag + " "
         corpus = corpus.replace('\n','')
         corpus = corpus.replace("'","")
-    return corpus
+    clear_corpus = ""
+    get = True
+    for k in corpus:
+        if k =='[':
+            get = False
+        elif k == ']':
+            get = True
+        else:
+            if get:
+                clear_corpus += k
+    return clear_corpus
+
+def animal_random_corpus(animal_type, word):
+    corpus=""
+    web=requests.get('https://www.nationalgeographic.com/animals/' + animal_type + '/' + word[0] + '/' + '-'.join(word.split()) + '/')
+    soup=BeautifulSoup(web.content, 'html.parser')
+    feature_list= soup.findAll('div', class_ = 'animalFastFacts section')
+    for sent in feature_list:
+        untag=sent.get_text()
+        corpus += untag + " "
+        corpus = corpus.replace('\n','')
+        corpus = corpus.replace("'","")
+    key_corpus = ""
+    inside = False
+    for k in corpus:
+        if k == '[':
+            inside = True
+        elif k == ']':
+            inside = False
+        else:
+            if inside:
+                key_corpus += k
+    remember = ""
+    new_corpus = []
+    inside = False
+    for k in key_corpus:
+        if k == '"':
+            if inside:
+                inside = False
+            else:
+                inside = True
+            if len(remember) != 0:
+                new_corpus.append(remember)
+                remember = ""
+        else:
+            if inside:
+                remember += k
+    hint_raw = []
+    l = len(new_corpus)
+    for i in range(l):
+        if i > 3 and i%2 == 1:
+            hint_raw.append(new_corpus[i])
+    hint = []
+    l = len(hint_raw)
+    for i in range(int(l/2)):
+        hint.append(hint_raw[2*i] + ' - ' + hint_raw[2*i+1])
+    hint.reverse()
+    return hint
+
 
 """
 (not completed)
-() -> int
 Select the subject with user interation &
-returns exit code to distinguish the mode
+select quiz word + get information from web (make corpus to answer the user questions)
 """
-def choose_subject():    
+def choose_subject():
     while (1):
-        print("If you want to exit, give me the number 0")
-        print("Choose the subject.")
-        sub=input("1. animals "+"2.greats "+"3. book categories "+"\n")
+        sub=input(" 0. Exit "+"1. play the game "+"\n")
         if(sub=='0'):
             return 0
-        if(sub=='1'):
+        elif(sub=='1'):
             global corpus
+            global random_corpus
             (animal_type, animal)=think_animal()
-            corpus=animal_corpus(animal_type,animal)
+            corpus=animal_corpus(animal)
+            random_corpus = animal_random_corpus(animal_type, animal)
             return 1
-        elif(sub=='2'):
-            think_greats()
-            #corpus=greates_corpus(myword)
-            return 2
-        elif(sub=="3"):
-            global hintlist
-            print("I'm working...")
-            rand_category=think_book()
-            category_word_list=br.Brown_hintlist(book_list)
-            for (category, word_list) in category_word_list:
-                if (rand_category==category):
-                    hintlist=word_list
-                    break
-            return 3
         else:
             print("There is no option about that. Choose number.\n")
 
-"""
-() -> ()
-Get the questions from user & answer the questions
-"""
 def get_questions():
     for i in range(20):
-        print("This is "+str(i+1)+"th question")
-        quest=input("What's your question? Please use question mark \'?\' in the end. \n You can give me the answer also.\n")
-        if (quest in myword):
+        print("\nThis is "+str(i+1)+"th turn")
+        quest=input("What's your question? Please use question mark \'?\' in the end. \nThe question must start with What, When or Where. \n You can give me the answer also.\n")
+        if quest == '0': return ()
+        mylist = [myword.split()[-1]]
+        mylist.append(myword)
+        if (quest in mylist):
             print("You correct! Congratulation. The answer was "+myword+"!")
             return
-        if (quest[-1]!='?'):
+        if dealing_question(quest)=="Maybe not or I don't know about that" and quest!='?':
+            print("My answer: Maybe not or I don't know about that")
+            print("Instead, I'll give you a basic hint")
+            quest='?'
+        if quest == '?':
+            global num
+            global random_corpus
+            if num == len(random_corpus):
+                print("No more basic hints. Guess a question.")
+            else:
+                print(random_corpus[num])
+                num += 1
+            continue
+        if (quest[-1]!='?' or quest[:2].lower() != 'wh'):
             print(wrong_list[random.randint(0,len(wrong_list)-1)])
             continue
         print("I'm thinking about your question...")
         sentence=dealing_question(quest)
         hide_sentence=hide_critical_part(sentence)
-        print("My answer: "+hide_sentence+"\n")
-    print("20 questions over... I win zz. The answer was "+myword+"!")
-"""
-()-> ()
-Give the hint words of book categories with user interaction ?.
-"""
-def give_hint():
-    print("I will give hints to you rather than I get the questions from you.")
-    for i in range(20):
-        print("This is "+str(i+1)+"th hints")
-        quest=input("Give me the answer or give me \'?\' to get hints.\n")
-        if (quest==myword):
-            print("You correct! Congratulation.")
-            return
-        elif (quest[-1]=='?'):
-            global hintlist
-            print("My hint word is : "+ hintlist[0])
-            hintlist= hintlist[1:]
-            continue
-        print(wrong_list[random.randint(0,len(wrong_list)-1)])
+        print("My answer: "+hide_sentence)
     print("20 questions over... I win zz. The answer was "+myword+"!")
 
-"""
-str list -> str list
-Find synonyms of given list's words  (stems of question) using synset.
-It returns all different form of synonyms (ex. verb+ing, ed ...)
-It will be used to search the stem word in corpus. 
-"""
 def Find_synonym (list1):
     myset=[]
     for myword in list1:
@@ -149,51 +177,52 @@ def Find_synonym (list1):
         syn_words= list(set(syn_words + relateform))
         myset+= syn_words
     return myset
-"""
-(not completed)
-str -> str
-Dealing questions, so calculate answer string.
-If there is no information about the question, it says I don't know.
-It returns answer string from corpus.
-"""
+
 def dealing_question(quest):
     sentences=nltk.tokenize.sent_tokenize(corpus)
     answer_list=[]
     #analysis question
     text=nltk.tokenize.word_tokenize(quest)
     tagged=nltk.pos_tag(text)
-    word_list= [word[0] for word in tagged if word[1] in ['NN','NNS','NNP','NNPS','VB','VBD','VBG','VBN','VBP','VBZ']]
-    stem_list= [word for word in word_list if word.isalpha() and len(word) > 1 ]
+    word_list= [word[0] for word in tagged if word[1].startswith('NN') or word[1].startswith('VB')]
+    stem_list= [word for word in word_list if word.isalpha() and len(word) > 1 and word not in ['do', 'does']]
+    stem_list=rmstopwords(stem_list)
     syn_list=Find_synonym(stem_list)
-    if ('name' in syn_list):
+    if ('name' in stem_list):
         return "I'm not fool, I can't show that"
-    answer_list = [sentence for sentence in sentences for syn_word in syn_list if(syn_word) in sentence]
-    if (answer_list==[]):
+    answer_list = [sentence for sentence in sentences for stem_word in stem_list if stem_word in sentence]
+    new_answer_list = []
+    for sentence in answer_list:
+        token_sentence = nltk.tokenize.word_tokenize(sentence)
+        lemma_sentence = [lemmatizer.lemmatize(w) for w in token_sentence]
+        for w in syn_list:
+            if w in lemma_sentence:
+                new_answer_list.append(sentence)
+    if (new_answer_list==[]):
+        answer_list = [sentence for sentence in sentences for syn_word in syn_list if syn_word in sentence]
+        new_answer_list = []
+        for sentence in answer_list:
+            token_sentence = nltk.tokenize.word_tokenize(sentence)
+            lemma_sentence = [lemmatizer.lemmatize(w) for w in token_sentence]
+            for w in syn_list:
+                if w in lemma_sentence:
+                    new_answer_list.append(sentence)
+    if (new_answer_list == []):
         return "Maybe not or I don't know about that"
-    return ' '.join(answer_list)
-"""
-(not completed)
-str -> str
-Hide critical information like direct name .
-It returns the hidden sentence.
-"""
+    return ' '.join(new_answer_list)
+
 def hide_critical_part(sentences):
     token_word=nltk.tokenize.word_tokenize(myword)
     for critical_word in token_word:
         c_critical=critical_word.capitalize()
         critical_set=[critical_word]+[critical_word+"s"]+[critical_word+"es"]+[critical_word+"ies"]+[c_critical]+[c_critical+"s"]+[c_critical+"es"]+[c_critical+"ies"]
         for c in critical_set:
-            sentences=sentences.replace(c,'they')
-        return sentences
+            sentences=sentences.replace(c,'???')
+    return sentences
     
-
 #main function part            
-print("Hello, this is 20 questions program.\n"+"I will think the word about subject  you chose.\n")
+print("Hello, this is 20 questions program.\n"+"I will think the word about subject you chose.\n")
 exit_code=choose_subject()
-if (exit_code == 3):
-    give_hint()
-elif (exit_code!=0):
+if (exit_code!=0):
     get_questions()
 print("Good bye.\n")
-
-
